@@ -1,0 +1,15 @@
+node_modules/
+.next/
+.next-qa/
+out/
+coverage/
+package-lock.json
+next-env.d.ts
+*.tsbuildinfo
+src/themes/generated/
+.husky/_/
+
+
+# Course design sources are preserved verbatim.
+docs/DESIGN-productivity.md
+docs/DESIGN-warm.md

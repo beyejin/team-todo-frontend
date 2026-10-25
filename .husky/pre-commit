@@ -1,0 +1,1 @@
+npx --no-install lint-staged --diff-filter=ACMRD --hide-unstaged --fail-on-changes
