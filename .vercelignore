@@ -1,0 +1,21 @@
+# 로컬 비밀 설정과 도구 상태
+.env*
+.git/
+.vercel/
+.DS_Store
+
+# 의존성과 로컬 빌드·QA 산출물
+node_modules/
+.next/
+.next-qa/
+out/
+output/
+coverage/
+*.tsbuildinfo
+*.log
+next-env.d.ts
+
+# 배포 앱에서 읽지 않는 작업 문서
+docs/
+README.md
+AGENTS.md

@@ -6,6 +6,19 @@ Next.js와 React로 일반 Todo와 팀 공유 칸반을 사용하는 프론트�
 [plan.md](docs/plan.md), 사용자가 브라우저에서 확인할 시나리오는
 [TEST_CASE.md](docs/TEST_CASE.md)를 따릅니다.
 
+## 현재 배포 상태 — 2026-10-26
+
+[프론트 배포](https://team-todo-frontend-blush.vercel.app)와
+[백엔드 배포](https://team-todo-backend-pied.vercel.app)는 Vercel에서 READY입니다.
+프론트는 **All Deployments + Vercel Authentication**을 적용했고 소유자 계정으로 앱 로드를 확인했습니다.
+비인증 HTTP 요청의 `/kanban`, `/api/kanban/tasks`, `/api/v1/tasks`는 SSO로 302 전환되어 앱·업무 JSON을 공개하지 않습니다.
+
+실제 Supabase 연결과 원격 권한 SQL 실행은 아직 완료하지 않았습니다. 백엔드는 Python 3.13에서
+`/openapi.json` 200, 무토큰 API 401, 유효 토큰을 사용해도 DB 미설정으로 두 업무 API가 503을 반환합니다.
+따라서 원격 등록·조회·상태 이동과 데모 영상 촬영은 미완료입니다. 비인증 브라우저 전체 수동 시나리오도
+HTTP 확인만으로 통과 처리하지 않습니다. 최신 자동 검사는 **프론트 185개·백엔드 52개·CLI 51개** 통과이며,
+과거 로컬 QA와 현재 원격 확인 범위는 [검증 기록](docs/VERIFICATION.md)에 구분했습니다.
+
 ## 준비와 실행
 
 - Node.js 24 이상, npm
@@ -19,7 +32,7 @@ npm run dev
 ```
 
 개발 화면은 `http://127.0.0.1:3000`에서 엽니다. 개발 서버는 로컬 주소에만 바인딩합니다.
-백엔드와 같은 컴퓨터의 브라우저에서 사용하는 구성이며 외부 배포를 완료한 상태를 뜻하지 않습니다.
+아래 기본 설정은 로컬 백엔드를 사용하는 개발 구성입니다. 원격 배포 상태는 위 기록과 구분합니다.
 
 별도 터미널에서 백엔드를 실행합니다.
 
@@ -29,35 +42,44 @@ uv sync --locked
 uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-`.env.local`의 `NEXT_PUBLIC_API_BASE_URL`은 브라우저에 공개되는 API 주소입니다.
-비밀번호나 토큰을 넣지 않습니다. 값을 바꾸면 개발 서버를 재시작하고, 운영용 빌드는 다시 만듭니다.
-브라우저가 백엔드에 직접 요청하므로 프론트 주소가 달라지면 백엔드 CORS 허용 주소도 맞춰야 합니다.
+일반 Todo와 칸반은 기본적으로 같은 출처의 Next.js 서버 프록시를 사용합니다.
+`TTODO_BASE_URL`은 두 API가 함께 사용하는 백엔드 주소이며, `TTODO_API_TOKEN`은 서버에서만 붙입니다.
+배포 환경에서는 접근 가능한 HTTPS 백엔드 주소와 필요한 토큰을 서버 환경 변수로 설정합니다.
+
+`NEXT_PUBLIC_API_BASE_URL`은 비워 둡니다. 기존 직접 연결 방식을 사용하려는 로컬 개발에서만
+공개 백엔드 주소로 재정의할 수 있습니다. 이 경우 일반 Todo가 프록시를 우회하므로 서버 토큰은
+전달되지 않으며 백엔드 CORS 설정이 필요합니다. 비밀번호나 토큰을 이 변수에 넣지 않습니다.
+값을 바꾸면 개발 서버를 재시작하고 운영용 빌드를 다시 만듭니다.
 
 ## 팀 공유 칸반 연결
 
 ```text
+브라우저 / → Next.js /api/v1/tasks → FastAPI /api/v1/tasks → Todo 저장소
 브라우저 /kanban → Next.js /api/kanban/tasks → FastAPI /api/v1/kanban/tasks → Supabase
 ```
 
 일반 Todo와 공유 칸반은 서로 다른 저장소입니다. 칸반은 기존 팀 보드의 `issues`, `board_items`를 사용합니다.
 로컬 저장소나 가짜 데이터로 공유 저장 성공을 대신하지 않습니다.
 
-| 위치                | 환경 변수                                    | 용도                                           |
-| ------------------- | -------------------------------------------- | ---------------------------------------------- |
-| 프론트 `.env.local` | `NEXT_PUBLIC_API_BASE_URL`                   | 일반 Todo 브라우저용 API 주소                  |
-| 프론트 `.env.local` | `TTODO_BASE_URL`                             | 칸반 백엔드 주소, 기본 `http://127.0.0.1:8000` |
-| 프론트 `.env.local` | `TTODO_API_TOKEN`                            | 백엔드가 인증을 요구할 때 서버에서만 전달      |
-| 백엔드 환경 변수    | `KANBAN_DATABASE_URL`                        | 기존 Supabase PostgreSQL 접속 문자열           |
-| 백엔드 환경 변수    | `KANBAN_BOARD_ID`, `KANBAN_ACTOR_PROFILE_ID` | 실제 보드와 workspace 멤버 UUID                |
+| 위치                | 환경 변수                                    | 용도                                                  |
+| ------------------- | -------------------------------------------- | ----------------------------------------------------- |
+| 프론트 `.env.local` | `NEXT_PUBLIC_API_BASE_URL`                   | 기본 빈 값. 일반 Todo 직접 연결이 필요할 때만 설정    |
+| 프론트 `.env.local` | `TTODO_BASE_URL`                             | 두 API 공통 백엔드 주소, 기본 `http://127.0.0.1:8000` |
+| 프론트 `.env.local` | `TTODO_API_TOKEN`                            | 백엔드가 인증을 요구할 때 서버에서만 전달             |
+| 백엔드 환경 변수    | `KANBAN_DATABASE_URL`                        | 기존 Supabase PostgreSQL 접속 문자열                  |
+| 백엔드 환경 변수    | `KANBAN_BOARD_ID`, `KANBAN_ACTOR_PROFILE_ID` | 실제 보드와 workspace 멤버 UUID                       |
 
 백엔드에 접속 정보를 안전하게 설정한 뒤 실행합니다. `.env`에 저장했다면 `uv run --env-file .env uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload`로 로드할 수 있습니다.
 DB 비밀번호·토큰은 커밋하거나 `NEXT_PUBLIC_` 변수에 넣지 않습니다. 프론트에는 DB 비밀번호가 필요 없습니다.
-프록시는 허용된 칸반 경로만 전달하고 조회를 캐시하지 않습니다. 토큰 없는 로컬 개발과 토큰이 있는 공유 백엔드를 모두 지원합니다.
+프록시는 각 API의 허용된 경로·쿼리만 전달하고 조회를 캐시하지 않습니다. 일반 Todo는 반복 상태 필터와
+본문 없는 삭제·복구를 그대로 지원합니다. 토큰 없는 로컬 개발과 토큰이 있는 공유 백엔드를 모두 지원합니다.
 
 현재 UI는 등록·조회·상태 변경을 제공합니다. 내용 수정·삭제·복구·컬럼 내부 순서 편집은 제공하지 않습니다.
 상태 이동에는 백엔드 `feat/supabase-connection` 브랜치의 `PATCH /api/v1/kanban/tasks/{UUID}`와 DB 계정의 최소 수정 권한이 필요합니다.
 필요 변경은 [KANBAN_API_CHANGES.md](docs/KANBAN_API_CHANGES.md)에 정리했습니다.
-로그인 없이 실행하는 로컬 수업 데모 구성입니다. 프론트 서버를 공개 배포할 때는 사용자 접근 제어를 별도로 적용해야 합니다.
+로컬에서는 로그인 없이 실행합니다. 배포에서는 Vercel의 **All Deployments + Vercel Authentication**으로
+화면과 `/api` 요청을 함께 보호합니다. 서버 토큰을 숨기는 프록시와 같은 출처 검사만으로는 방문자의
+접근 권한이 확인되지 않습니다. 접근 보호의 실제 적용·배포 완료 여부는 검증 기록을 따릅니다.
 
 실제 연결·검사 완료 여부는 [VERIFICATION.md](docs/VERIFICATION.md), 3분 발표 흐름은
 [presentation.md](docs/presentation.md)를 확인합니다. 화면 구현 완료와 실제 공유 보드 연결 완료를 구분합니다.

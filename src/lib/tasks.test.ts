@@ -49,6 +49,17 @@ afterEach(() => {
 });
 
 describe("Todo API 요청", () => {
+  it.each([undefined, ""])(
+    "공개 주소가 %s이면 같은 출처의 서버 프록시로 요청한다",
+    async (base) => {
+      vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", base);
+      fetchMock.mockResolvedValue(jsonResponse(task));
+      await getTask(17);
+      expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/tasks/17");
+      expect(fetchMock.mock.calls[0]?.[1]?.headers).toBeUndefined();
+    },
+  );
+
   it("복수 상태와 false·0·한글·시간대 필터를 손실 없이 전달한다", async () => {
     fetchMock.mockResolvedValue(jsonResponse(page));
     const controller = new AbortController();
@@ -75,8 +86,12 @@ describe("Todo API 요청", () => {
     expect(call).toBeDefined();
     if (!call) throw new Error("목록 요청이 없습니다.");
     const [input, options] = call;
-    const url = new URL(input instanceof Request ? input.url : input);
-    expect(url.origin).toBe("http://127.0.0.1:8000");
+    const url = new URL(
+      input instanceof Request ? input.url : input,
+      "https://todo.example",
+    );
+    expect(url.origin).toBe("https://todo.example");
+    expect(input).toMatch(/^\/api\/v1\/tasks/);
     expect(url.pathname).toBe("/api/v1/tasks");
     expect(url.searchParams.getAll("status")).toEqual(["assigned", "in_progress"]);
     expect(Object.fromEntries(url.searchParams)).toMatchObject({
@@ -113,7 +128,7 @@ describe("Todo API 요청", () => {
 
     await expect(createTask({ title: task.title })).resolves.toEqual(task);
 
-    expect(fetchMock).toHaveBeenCalledWith("http://127.0.0.1:8000/api/v1/tasks", {
+    expect(fetchMock).toHaveBeenCalledWith("/api/v1/tasks", {
       method: "POST",
       cache: "no-store",
       headers: { "Content-Type": "application/json" },
@@ -128,7 +143,7 @@ describe("Todo API 요청", () => {
 
     await expect(updateTask(17, patch)).resolves.toMatchObject(patch);
 
-    expect(fetchMock).toHaveBeenCalledWith("http://127.0.0.1:8000/api/v1/tasks/17", {
+    expect(fetchMock).toHaveBeenCalledWith("/api/v1/tasks/17", {
       method: "PATCH",
       cache: "no-store",
       headers: { "Content-Type": "application/json" },
@@ -142,7 +157,7 @@ describe("Todo API 요청", () => {
 
     await expect(deleteTask(17)).resolves.toEqual(deleted);
 
-    expect(fetchMock).toHaveBeenCalledWith("http://127.0.0.1:8000/api/v1/tasks/17", {
+    expect(fetchMock).toHaveBeenCalledWith("/api/v1/tasks/17", {
       method: "DELETE",
       cache: "no-store",
     });
@@ -157,14 +172,11 @@ describe("Todo API 요청", () => {
       listDeletedTasks({ limit: 20, offset: 20 }, controller.signal),
     ).resolves.toEqual(deletedPage);
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:8000/api/v1/tasks/deleted?limit=20&offset=20",
-      {
-        method: "GET",
-        cache: "no-store",
-        signal: controller.signal,
-      },
-    );
+    expect(fetchMock).toHaveBeenCalledWith("/api/v1/tasks/deleted?limit=20&offset=20", {
+      method: "GET",
+      cache: "no-store",
+      signal: controller.signal,
+    });
   });
 
   it("본문 없이 복구를 요청하고 복구된 Task를 반환한다", async () => {
@@ -172,13 +184,10 @@ describe("Todo API 요청", () => {
 
     await expect(restoreTask(17)).resolves.toEqual(task);
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:8000/api/v1/tasks/17/restore",
-      {
-        method: "POST",
-        cache: "no-store",
-      },
-    );
+    expect(fetchMock).toHaveBeenCalledWith("/api/v1/tasks/17/restore", {
+      method: "POST",
+      cache: "no-store",
+    });
   });
 });
 
@@ -293,6 +302,52 @@ describe("Todo API 오류", () => {
     await expect(pending).rejects.toMatchObject({ status: 201 });
     await expect(pending).rejects.toThrow("목록에서 저장 여부");
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([500, 502, 503])(
+    "생성 %i 응답은 재등록 전에 저장 여부 확인을 안내한다",
+    async (status) => {
+      fetchMock.mockResolvedValue(
+        jsonResponse({ detail: "upstream response lost" }, status),
+      );
+      await expect(createTask({ title: "중복 등록 방지" })).rejects.toMatchObject({
+        status,
+        message:
+          "저장 결과를 확인하지 못했습니다. 다시 등록하기 전에 목록에서 저장 여부를 확인해 주세요.",
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each([500, 502, 503])(
+    "수정 %i 비JSON 응답도 저장 실패로 단정하지 않는다",
+    async (status) => {
+      fetchMock.mockResolvedValue(new Response("private traceback", { status }));
+      await expect(updateTask(17, { title: "변경" })).rejects.toThrow(
+        "새로고침해 현재 상태를 확인",
+      );
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("수정의 JSON 502와 생성의 비JSON 502에서도 결과 확인을 안내한다", async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ detail: "timeout" }, 502))
+      .mockResolvedValueOnce(new Response("upstream error", { status: 502 }));
+    await expect(updateTask(17, { title: "변경" })).rejects.toThrow(
+      "변경 결과를 확인하지 못했습니다",
+    );
+    await expect(createTask({ title: "새 작업" })).rejects.toThrow(
+      "다시 등록하기 전에 목록에서 저장 여부",
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("본문 없는 삭제와 복구 응답 유실도 재조회로 확인하게 한다", async () => {
+    fetchMock.mockRejectedValue(new TypeError("network failure"));
+    await expect(deleteTask(17)).rejects.toThrow("새로고침해 현재 상태를 확인");
+    await expect(restoreTask(17)).rejects.toThrow("새로고침해 현재 상태를 확인");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("이전 목록 요청의 취소는 일반 서버 오류로 변환하지 않는다", async () => {

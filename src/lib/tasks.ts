@@ -160,7 +160,7 @@ function fieldErrors(payload: unknown): Record<string, string> {
 function errorMessage(status: number): string {
   if (status === 400) return "필터와 날짜 범위를 확인해 주세요.";
   if (status === 401) {
-    return "백엔드에서 인증을 요구하고 있습니다. 토큰 없이 실행되는 로컬 서버인지 연결 설정을 확인해 주세요.";
+    return "백엔드 인증을 확인하지 못했습니다. 서버의 API 토큰과 연결 설정을 확인해 주세요.";
   }
   if (status === 404)
     return "할 일을 찾을 수 없습니다. 삭제되었거나 존재하지 않는 항목입니다.";
@@ -168,10 +168,12 @@ function errorMessage(status: number): string {
   return "서버에서 요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.";
 }
 
-function responseFailure(isCreation: boolean): string {
-  return isCreation
-    ? "저장 결과를 확인하지 못했습니다. 다시 등록하기 전에 목록에서 저장 여부를 확인해 주세요."
-    : "서버 응답을 확인하지 못했습니다. 백엔드 실행 상태와 연결 주소를 확인한 뒤 다시 시도해 주세요.";
+function responseFailure(method: string, isCreation: boolean): string {
+  if (isCreation)
+    return "저장 결과를 확인하지 못했습니다. 다시 등록하기 전에 목록에서 저장 여부를 확인해 주세요.";
+  if (method !== "GET")
+    return "변경 결과를 확인하지 못했습니다. 다시 요청하기 전에 목록이나 상세를 새로고침해 현재 상태를 확인해 주세요.";
+  return "서버 응답을 확인하지 못했습니다. 백엔드 실행 상태와 연결 주소를 확인한 뒤 다시 시도해 주세요.";
 }
 
 async function request<T>(
@@ -181,9 +183,7 @@ async function request<T>(
   body?: TaskInput | TaskPatch,
   signal?: AbortSignal,
 ): Promise<T> {
-  const baseUrl = (
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000"
-  ).replace(/\/+$/, "");
+  const baseUrl = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/+$/, "");
   const isCreation = method === "POST" && path === "/api/v1/tasks";
   const options: RequestInit = { method, cache: "no-store" };
   if (signal) options.signal = signal;
@@ -199,8 +199,13 @@ async function request<T>(
     if (signal?.aborted || (error instanceof Error && error.name === "AbortError")) {
       throw error;
     }
-    throw new ApiError(0, responseFailure(isCreation));
+    throw new ApiError(0, responseFailure(method, isCreation));
   }
+
+  const failureMessage =
+    response.status >= 500 && method !== "GET"
+      ? responseFailure(method, isCreation)
+      : errorMessage(response.status);
 
   let payload: unknown;
   try {
@@ -211,18 +216,18 @@ async function request<T>(
     }
     throw new ApiError(
       response.status,
-      response.ok ? responseFailure(isCreation) : errorMessage(response.status),
+      response.ok ? responseFailure(method, isCreation) : failureMessage,
     );
   }
   if (!response.ok) {
     throw new ApiError(
       response.status,
-      errorMessage(response.status),
+      failureMessage,
       response.status === 422 ? fieldErrors(payload) : {},
     );
   }
   if (!isValid(payload))
-    throw new ApiError(response.status, responseFailure(isCreation));
+    throw new ApiError(response.status, responseFailure(method, isCreation));
   return payload;
 }
 
