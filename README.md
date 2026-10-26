@@ -1,6 +1,8 @@
 # 팀 Todo 프론트엔드
 
-Next.js와 React로 로컬 Todo API를 사용하는 프론트엔드입니다. 기능 범위와 완료 기준은
+Next.js와 React로 일반 Todo와 팀 공유 칸반을 사용하는 프론트엔드입니다. `/kanban`에서
+할 일·진행 중·완료 컬럼을 보고 업무를 등록하거나 드래그·상태 버튼으로 옮깁니다.
+기존 Todo의 수정·휴지통·복구와 Productivity/Warm 테마는 그대로 제공합니다. 기능 범위와 완료 기준은
 [plan.md](docs/plan.md), 사용자가 브라우저에서 확인할 시나리오는
 [TEST_CASE.md](docs/TEST_CASE.md)를 따릅니다.
 
@@ -30,6 +32,35 @@ uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 `.env.local`의 `NEXT_PUBLIC_API_BASE_URL`은 브라우저에 공개되는 API 주소입니다.
 비밀번호나 토큰을 넣지 않습니다. 값을 바꾸면 개발 서버를 재시작하고, 운영용 빌드는 다시 만듭니다.
 브라우저가 백엔드에 직접 요청하므로 프론트 주소가 달라지면 백엔드 CORS 허용 주소도 맞춰야 합니다.
+
+## 팀 공유 칸반 연결
+
+```text
+브라우저 /kanban → Next.js /api/kanban/tasks → FastAPI /api/v1/kanban/tasks → Supabase
+```
+
+일반 Todo와 공유 칸반은 서로 다른 저장소입니다. 칸반은 기존 팀 보드의 `issues`, `board_items`를 사용합니다.
+로컬 저장소나 가짜 데이터로 공유 저장 성공을 대신하지 않습니다.
+
+| 위치                | 환경 변수                                    | 용도                                           |
+| ------------------- | -------------------------------------------- | ---------------------------------------------- |
+| 프론트 `.env.local` | `NEXT_PUBLIC_API_BASE_URL`                   | 일반 Todo 브라우저용 API 주소                  |
+| 프론트 `.env.local` | `TTODO_BASE_URL`                             | 칸반 백엔드 주소, 기본 `http://127.0.0.1:8000` |
+| 프론트 `.env.local` | `TTODO_API_TOKEN`                            | 백엔드가 인증을 요구할 때 서버에서만 전달      |
+| 백엔드 환경 변수    | `KANBAN_DATABASE_URL`                        | 기존 Supabase PostgreSQL 접속 문자열           |
+| 백엔드 환경 변수    | `KANBAN_BOARD_ID`, `KANBAN_ACTOR_PROFILE_ID` | 실제 보드와 workspace 멤버 UUID                |
+
+백엔드에 접속 정보를 안전하게 설정한 뒤 실행합니다. `.env`에 저장했다면 `uv run --env-file .env uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload`로 로드할 수 있습니다.
+DB 비밀번호·토큰은 커밋하거나 `NEXT_PUBLIC_` 변수에 넣지 않습니다. 프론트에는 DB 비밀번호가 필요 없습니다.
+프록시는 허용된 칸반 경로만 전달하고 조회를 캐시하지 않습니다. 토큰 없는 로컬 개발과 토큰이 있는 공유 백엔드를 모두 지원합니다.
+
+현재 UI는 등록·조회·상태 변경을 제공합니다. 내용 수정·삭제·복구·컬럼 내부 순서 편집은 제공하지 않습니다.
+상태 이동에는 백엔드 `feat/supabase-connection` 브랜치의 `PATCH /api/v1/kanban/tasks/{UUID}`와 DB 계정의 최소 수정 권한이 필요합니다.
+필요 변경은 [KANBAN_API_CHANGES.md](docs/KANBAN_API_CHANGES.md)에 정리했습니다.
+로그인 없이 실행하는 로컬 수업 데모 구성입니다. 프론트 서버를 공개 배포할 때는 사용자 접근 제어를 별도로 적용해야 합니다.
+
+실제 연결·검사 완료 여부는 [VERIFICATION.md](docs/VERIFICATION.md), 3분 발표 흐름은
+[presentation.md](docs/presentation.md)를 확인합니다. 화면 구현 완료와 실제 공유 보드 연결 완료를 구분합니다.
 
 ## 자동 검사와 수동 확인
 

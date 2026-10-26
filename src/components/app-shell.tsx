@@ -18,6 +18,7 @@ import {
   TrashIcon,
   SlidersHorizontalIcon,
   PlusIcon,
+  KanbanIcon,
 } from "@phosphor-icons/react";
 import { Button } from "@astryxdesign/core/Button";
 
@@ -66,6 +67,14 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
           }
         >
           <SideNavSection title="워크스페이스" isHeaderHidden>
+            <SideNavItem
+              as={Link}
+              href="/kanban"
+              label="팀 칸반"
+              onClick={closeNavigation}
+              icon={<KanbanIcon size={20} aria-hidden />}
+              isSelected={pathname === "/kanban"}
+            />
             <SideNavItem
               as={Link}
               href="/"
