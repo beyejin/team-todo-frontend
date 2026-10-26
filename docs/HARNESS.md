@@ -74,7 +74,7 @@ npm run dev -- --port 3001
 
 2026-10-26 프론트·백엔드의 Vercel READY와 프론트 **All Deployments + Vercel Authentication** 적용을 확인했습니다. Vercel API 재조회에서 `ssoProtection.deploymentType=all`이었고, 비인증 HTTP의 `/kanban`·`/api/v1/tasks`·`/api/kanban/tasks`는 모두 `vercel.com/sso-api`로 302 전환했습니다. 소유자 계정으로 로그인한 Chrome에서 앱 로드도 확인했습니다. 프록시의 서버 토큰 비공개·출처 검사는 방문자 인증을 대신하지 않습니다.
 
-백엔드는 Python 3.13에서 `/openapi.json` 200, 무토큰 API 401을 확인했습니다. 유효 토큰을 사용한 두 업무 API는 DB 미설정으로 503이며 실제 Supabase 연결·원격 권한 SQL·원격 공유 검증·영상 촬영은 미완료입니다. HTTP 302를 비인증 브라우저의 production·preview 전체 수동 시나리오 통과로 대신하지 않습니다.
+백엔드는 Python 3.13에서 `/openapi.json` 200, 무토큰 API 401을 확인했습니다. 사용자 SQL 실행 뒤 새 칸반 DB 연결의 인증·최소 UPDATE 권한을 확인하고 Production에 반영했습니다. 인증된 백엔드와 Vercel CLI로 인증한 프론트 프록시의 칸반 GET은 200입니다. CLI 등록 요청이 5초 제한으로 종료된 경우에는 재등록하지 않고 GET으로 업무 #13의 저장을 확인했습니다. 같은 업무의 프론트 프록시 PATCH로 진행 중 → 완료 → 진행 중 이동도 각 200·요청 상태 일치를 확인했습니다. 일반 Todo는 별도 `DATABASE_URL` 미설정으로 503입니다. 연결 후 브라우저 UI·두 브라우저 공유·실제 드래그·영상은 아직 확인하지 않았습니다. HTTP 302를 비인증 브라우저의 production·preview 전체 수동 시나리오 통과로 대신하지 않습니다.
 
 최신 자동 검사는 프론트 **185개**, 백엔드 **52개**, CLI **51개** 통과입니다. 배포 주소, 과거 격리 QA와 현재 확인 범위는 [VERIFICATION.md](VERIFICATION.md)에 구분합니다.
 

@@ -4,16 +4,21 @@
 
 ## 현재 원격 배포 확인
 
-| 대상                                                  | 확인한 결과                                                                                                     |
-| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| [프론트](https://team-todo-frontend-blush.vercel.app) | Vercel READY. 소유자 계정으로 로그인한 Chrome에서 실제 앱 로드 확인                                             |
-| 프론트 접근 보호                                      | Vercel API 재조회에서 `ssoProtection.deploymentType=all` 확인. All Deployments + Vercel Authentication 적용     |
-| 비인증 HTTP                                           | `/kanban`, `/api/kanban/tasks`, `/api/v1/tasks`가 모두 `302`로 `vercel.com/sso-api`에 전환. 앱·업무 JSON 비공개 |
-| [백엔드](https://team-todo-backend-pied.vercel.app)   | Vercel READY, Python 3.13. `/openapi.json` 200, 무토큰 업무 API 401                                             |
-| DB 연결 상태                                          | 유효 토큰을 사용한 일반 Todo·칸반 API 모두 DB 미설정으로 503. 실제 Supabase 연결과 원격 권한 SQL 실행은 미완료  |
-| 데모 영상                                             | 아직 촬영하지 않음                                                                                              |
+| 대상                                                  | 확인한 결과                                                                                                                 |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| [프론트](https://team-todo-frontend-blush.vercel.app) | Vercel READY. 소유자 계정으로 로그인한 Chrome에서 실제 앱 로드 확인                                                         |
+| 프론트 접근 보호                                      | Vercel API 재조회에서 `ssoProtection.deploymentType=all` 확인. All Deployments + Vercel Authentication 적용                 |
+| 비인증 HTTP                                           | `/kanban`, `/api/kanban/tasks`, `/api/v1/tasks`가 모두 `302`로 `vercel.com/sso-api`에 전환. 앱·업무 JSON 비공개             |
+| [백엔드](https://team-todo-backend-pied.vercel.app)   | Vercel READY, Python 3.13. `/openapi.json` 200, 무토큰 업무 API 401                                                         |
+| 칸반 DB 연결                                          | 사용자 SQL 실행 뒤 새 연결의 `current_user=ttodo_worker`, 상태 이동용 열 단위 UPDATE 권한 확인. 인증된 배포 백엔드 GET 200  |
+| 프론트 칸반 프록시                                    | Vercel CLI로 인증한 production `/api/kanban/tasks` GET 200, 기존 업무 `total=4` 확인                                        |
+| 실제 업무 저장                                        | CLI 등록 요청은 5초 시간 초과. 백엔드 GET 재조회로 업무 #13 저장과 `total=5` 확인, 중복 등록하지 않음                       |
+| 프론트 칸반 상태 이동                                 | 인증된 production 프록시 PATCH로 같은 업무를 `in_progress` → `completed` → `in_progress` 이동. 모든 응답 200·요청 상태 일치 |
+| 최종 저장 재조회                                      | 프론트 목록 GET 200·`total=5`와 Supabase 새 연결 직접 SELECT 모두 업무 #13의 진행 중 상태 일치. 기존 4건 상태 보존          |
+| 일반 Todo DB                                          | `DATABASE_URL` 미설정으로 인증된 API 요청도 503. 별도 DB 준비가 남음                                                        |
+| 데모 영상                                             | 아직 촬영하지 않음                                                                                                          |
 
-배포와 접근 보호 확인은 실제 업무 저장 성공을 뜻하지 않습니다. 비인증 HTTP 302 확인을 별도 브라우저의 production·preview 전체 수동 시나리오 통과로 대신하지 않습니다. 소유자 브라우저의 앱 로드 이후 실제 원격 CRUD·공유·상태 이동은 DB 연결 후 검증해야 합니다.
+칸반 서버 API와 프론트 프록시 조회·실제 업무 저장·프록시 PATCH 상태 이동을 확인한 범위입니다. 연결 후 브라우저 UI, 화면의 이동 버튼, 두 브라우저 공유·드래그·영상은 아직 확인하지 않았습니다. 비인증 HTTP 302 확인을 별도 브라우저의 production·preview 전체 수동 시나리오 통과로 대신하지 않습니다.
 
 ## 자동 검사
 
@@ -68,13 +73,32 @@ QA 주소는 `localhost:3001/kanban` → `127.0.0.1:8001` → 별도 `kanban_fro
 | 모바일 탐색        | 375px 단일 열 배치, 메뉴에서 설정·팀 칸반 접근                                                                          |
 | 실제 마우스 드래그 | 브라우저 도구의 drag가 동작을 재현하지 못해 미확정. 이벤트 기반 자동 검사는 통과했으나 사용자의 실제 드래그 확인은 남음 |
 
-### 실제 Supabase — 연결 전 확인
+### 실제 Supabase — 연결과 업무 저장 확인
 
-Supabase 대시보드의 읽기 전용 조회로 `kanban-team6` 프로젝트, 기존 `Assignment #3 Board`, 세 상태 컬럼, 기존 업무 4개, workspace 멤버와 `ttodo_worker` 역할을 확인했습니다. 현재 역할에는 상태 이동용 UPDATE 권한이 없습니다.
+연결 전 Supabase 대시보드의 읽기 전용 조회로 `kanban-team6` 프로젝트, 기존 `Assignment #3 Board`, 세 상태 컬럼, 기존 업무 4개, workspace 멤버와 `ttodo_worker` 역할을 확인했습니다. 당시 없던 상태 이동용 UPDATE 권한은 아래 사용자 SQL 실행 후 다시 확인했습니다.
 
-현재 배포된 백엔드도 실제 DB 접속 설정을 완료하지 않았으므로 **프론트 → 실제 Supabase 등록·조회·상태 이동은 아직 미완료**입니다. 원격 권한 SQL은 아직 실행하지 않았습니다. `002_worker_status_update.sql`의 검증 통과는 격리 DB에 대한 결과입니다. 공유 업무를 등록했다고 보고하지 않습니다.
+2026-10-26 사용자가 SQL Editor에서 서버 계정 비밀번호 재설정과 `002_worker_status_update.sql`에 해당하는 최소 권한을 적용했습니다. 새 DB 연결에서 `current_user=ttodo_worker`, `board_items.column_id`와 `issues.updated_at`의 UPDATE 권한이 모두 `true`임을 확인했습니다. 기존 보드 이름과 업무 4건도 일치했습니다. 비밀번호·검증 문자열·접속 URL은 기록하지 않습니다.
 
-사용자 수동 테스트 전체와 별도 브라우저 간 실제 원격 공유, 실제 드래그, VoiceOver 낭독은 남은 확인 항목입니다. 발표 전에 실제 접속 정보·최소 수정 권한을 설정하고 FE-KB-001부터 순서대로 진행합니다.
+Production의 `KANBAN_DATABASE_URL` 비밀 환경변수를 반영하고 백엔드를 재배포했습니다. 무토큰 요청은 401, 유효 토큰의 칸반 목록 GET은 200·`total=4`였습니다. Vercel CLI로 인증한 프론트 production `/api/kanban/tasks` GET도 200·`total=4`여서 실제 서버 프록시 경유 조회를 확인했습니다.
+
+실제 업무 `과제 #8 칸반 배포 및 데모 영상 제작`을 CLI로 등록할 때 요청이 5초 제한으로 종료됐습니다. 다시 등록하지 않고 백엔드 GET을 조회해 아래 저장 결과를 확인했습니다.
+
+| 항목                 | 확인값                                 |
+| -------------------- | -------------------------------------- |
+| 업무 UUID            | `8bd6b2e8-02ef-4196-a7a2-dd268026b1e6` |
+| 업무 번호            | `13`                                   |
+| 등록 직후 GET 상태   | `assigned`                             |
+| 등록 후 보드 전체 수 | `5`                                    |
+
+백엔드를 서울 `icn1` 리전으로 재배포한 뒤 배포 API에서 `dpl_GhDnuo6P6t1ocqCb5JeGh8YNjRzi`의 READY·`regions=['icn1']`을 확인했습니다. 기존 칸반 목록 조회는 9.52초, 리전 변경 후 같은 목록 GET 200·`total=5`는 0.71초였습니다. 각각 한 번 측정한 값이며 평균 응답 시간이나 부하 성능 검증은 아닙니다. 이후 CLI의 같은 업무 상세 조회도 성공했습니다.
+
+인증된 프론트 production `/api/kanban/tasks/8bd6b2e8-02ef-4196-a7a2-dd268026b1e6`에 HTTP PATCH로 `in_progress` → `completed` → `in_progress`를 요청했습니다. 세 응답 모두 200이며 요청 상태와 일치했습니다. 마지막 PATCH 응답의 `updated_at`은 `2026-10-26T10:41:50.676494Z`입니다. 영상 제작이 남아 있으므로 업무는 진행 중 상태로 둡니다. 이 확인은 브라우저 버튼·드래그 조작 검증이 아닙니다.
+
+최종 프론트 목록 GET은 200·`total=5`였고 같은 UUID·업무 #13의 `in_progress`와 위 수정 시각이 유지됐습니다. Supabase의 새 연결에서 직접 SELECT한 결과도 해당 업무의 상태 범주가 `in_progress`로 일치했습니다. 기존 업무 #9(`in_progress`), #10(`todo`), #11(`done`), #12(`todo`)는 원래 상태를 유지했습니다.
+
+일반 Todo는 `DATABASE_URL` 미설정으로 503이며 칸반 연결과 별도입니다.
+
+현재 브라우저 조작 연결이 없어 연결 후 UI·두 브라우저 공유·실제 드래그·영상은 확인하지 못했습니다. 사용자 수동 테스트 전체와 VoiceOver 낭독도 남은 항목입니다. 브라우저 연결 후 FE-KB-001부터 순서대로 진행합니다.
 
 ## 확인 범위와 남은 사용자 수동 확인
 
