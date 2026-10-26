@@ -20,8 +20,8 @@ describe("TC-FE-007 테마 설정", () => {
         <ThemeSettings />
       </ThemeProvider>,
     );
-    fireEvent.click(screen.getByRole("radio", { name: "Warm · 편안한 흐름" }));
-    expect(screen.getByRole("radio", { name: "Warm · 편안한 흐름" })).toBeChecked();
+    fireEvent.click(screen.getByRole("radio", { name: "Warm" }));
+    expect(screen.getByRole("radio", { name: "Warm" })).toBeChecked();
     expect(document.cookie).toContain("team-todo-theme=warm");
     view.unmount();
     render(
@@ -29,7 +29,7 @@ describe("TC-FE-007 테마 설정", () => {
         <ThemeSettings />
       </ThemeProvider>,
     );
-    expect(screen.getByRole("radio", { name: "Warm · 편안한 흐름" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Warm" })).toBeChecked();
   });
   it("브라우저가 쿠키 저장을 차단해도 현재 화면은 전환한다", () => {
     vi.spyOn(document, "cookie", "set").mockImplementation(() => {
@@ -40,7 +40,7 @@ describe("TC-FE-007 테마 설정", () => {
         <ThemeSettings />
       </ThemeProvider>,
     );
-    fireEvent.click(screen.getByRole("radio", { name: "Warm · 편안한 흐름" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Warm" }));
     expect(screen.getByRole("status")).toHaveTextContent("현재 테마: Warm");
   });
 });

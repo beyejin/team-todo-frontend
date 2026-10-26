@@ -508,9 +508,8 @@ export function TaskBoard({ trash = false }: { trash?: boolean }) {
   return (
     <VStack className="workspace" gap={6}>
       <VStack className="page-heading" gap={2}>
-        <Text type="supporting">팀 워크스페이스</Text>
         <HStack hAlign="between" vAlign="center" wrap="wrap" gap={4}>
-          <Heading level={1}>{trash ? "휴지통" : "우리의 할 일"}</Heading>
+          <Heading level={1}>{trash ? "휴지통" : "할 일"}</Heading>
           {!trash && (
             <Button
               as={Link}
@@ -523,8 +522,8 @@ export function TaskBoard({ trash = false }: { trash?: boolean }) {
         </HStack>
         <Text color="secondary">
           {trash
-            ? "삭제한 할 일을 다시 가져올 수 있어요."
-            : "할 일을 나누고, 함께 한 걸음씩."}
+            ? "삭제한 할 일을 확인하고 복구합니다."
+            : "담당자와 마감일을 지정하고 업무를 관리합니다."}
         </Text>
       </VStack>
       {!trash && (
@@ -643,7 +642,7 @@ export function TaskBoard({ trash = false }: { trash?: boolean }) {
                     ? "삭제한 할 일은 여기에 보관돼요."
                     : hasFilters(parsed.filters)
                       ? "필터를 바꾸거나 초기화해 보세요."
-                      : "머릿속에 있는 일을 적으면, 함께할 다음 단계가 보입니다."}
+                      : "새 할 일을 등록해 업무를 관리하세요."}
                 </Text>
                 {!trash &&
                   (hasFilters(parsed.filters) ? (

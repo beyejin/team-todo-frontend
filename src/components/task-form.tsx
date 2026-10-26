@@ -213,7 +213,7 @@ export function TaskForm({ task }: { task?: Task }) {
         </VStack>
 
         <VStack as="section" gap={5} className="form-section">
-          <Heading level={2}>함께 정리하기</Heading>
+          <Heading level={2}>담당자와 분류</Heading>
           {(
             [
               ["assignees", "담당자", "담당자 A, 담당자 B"],

@@ -2,7 +2,7 @@ import { defineTheme } from "@astryxdesign/core/theme";
 
 export default defineTheme({
   name: "warm",
-  color: { accent: "#903f00", neutralStyle: "warm" },
+  color: { accent: "#7b6044", neutralStyle: "warm" },
   typography: {
     body: {
       family: "Plus Jakarta Sans Variable",
@@ -14,17 +14,19 @@ export default defineTheme({
     },
   },
   tokens: {
-    "--color-background-body": "#fff8f5",
-    "--color-background-surface": "#ffffff",
-    "--color-background-muted": "#fcf2eb",
-    "--color-text-primary": "#1f1b17",
-    "--color-text-secondary": "#564338",
-    "--color-accent": "#903f00",
-    "--color-border": "#ddc1b3",
+    "--color-background-body": "#f7f3eb",
+    "--color-background-surface": "#fffdf8",
+    "--color-background-card": "#fffdf8",
+    "--color-background-popover": "#fffdf8",
+    "--color-background-muted": "#eee8dd",
+    "--color-text-primary": "#302b25",
+    "--color-text-secondary": "#6b6258",
+    "--color-accent": "#7b6044",
+    "--color-border": "#ded5c7",
     "--radius-element": "8px",
-    "--radius-container": "16px",
-    "--radius-page": "24px",
-    "--text-heading-1-size": "32px",
+    "--radius-container": "12px",
+    "--radius-page": "16px",
+    "--text-heading-1-size": "28px",
     "--text-heading-1-weight": "600",
     "--spacing-4": "20px",
     "--spacing-6": "32px",

@@ -203,14 +203,12 @@ export function KanbanBoard() {
         wrap="wrap"
       >
         <VStack gap={2}>
-          <Text type="label" color="accent">
-            TEAM WORKSPACE
-          </Text>
           <Heading level={1}>팀 칸반</Heading>
-          <Text type="supporting">함께하는 작업의 흐름을 한눈에 확인하세요.</Text>
+          <Text type="supporting">팀 업무를 등록하고 진행 상태를 관리합니다.</Text>
         </VStack>
         <Button
           label="보드 새로고침"
+          variant="ghost"
           icon={<ArrowClockwiseIcon size={18} aria-hidden />}
           onClick={refresh}
           isDisabled={busy}
@@ -347,8 +345,8 @@ export function KanbanBoard() {
                 className="kanban-column"
                 data-status={column.status}
                 data-drag-active={dragged !== null}
-                gap={4}
-                padding={4}
+                gap={3}
+                padding={3}
                 aria-labelledby={`kanban-${column.status}`}
                 onDragOver={(event: DragEvent<HTMLElement>) => {
                   if (dragged !== null && !busy && !loading) {
@@ -360,7 +358,12 @@ export function KanbanBoard() {
                   drop(event, column.status);
                 }}
               >
-                <HStack hAlign="between" vAlign="center" gap={3}>
+                <HStack
+                  className="kanban-column-heading"
+                  hAlign="between"
+                  vAlign="center"
+                  gap={3}
+                >
                   <Heading level={2} id={`kanban-${column.status}`}>
                     {column.label}
                   </Heading>
@@ -380,6 +383,7 @@ export function KanbanBoard() {
                     aria-describedby="kanban-help"
                     tabIndex={-1}
                     padding={4}
+                    elevation="none"
                     className="kanban-card"
                     draggable={!busy && !loading}
                     onDragStart={(event) => {
@@ -425,7 +429,7 @@ export function KanbanBoard() {
                               label={`${target.destination} 이동`}
                               aria-label={`${task.title}: ${target.destination} 이동`}
                               size="sm"
-                              variant="secondary"
+                              variant="ghost"
                               isDisabled={busy || loading}
                               onClick={() => {
                                 void move(task, target.status);

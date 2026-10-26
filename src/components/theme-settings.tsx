@@ -16,9 +16,8 @@ export function ThemeSettings() {
   return (
     <VStack className="workspace settings-page" gap={8}>
       <VStack gap={2} className="page-heading">
-        <Text type="supporting">워크스페이스 설정</Text>
-        <Heading level={1}>나에게 맞는 분위기</Heading>
-        <Text color="secondary">편하게 집중할 수 있는 테마를 골라 보세요.</Text>
+        <Heading level={1}>설정</Heading>
+        <Text color="secondary">작업 화면의 색상과 간격을 선택하세요.</Text>
       </VStack>
       <VStack as="section" gap={6} className="settings-section">
         <RadioList
@@ -31,13 +30,13 @@ export function ThemeSettings() {
         >
           <RadioListItem
             value="productivity"
-            label="Productivity · 또렷한 집중"
-            description="시원한 바탕과 보라색 포인트로 할 일에 집중해요."
+            label="Productivity"
+            description="회색 바탕, 짙은 청록색 강조, 촘촘한 간격"
           />
           <RadioListItem
             value="warm"
-            label="Warm · 편안한 흐름"
-            description="따뜻한 크림색 바탕에서 여유 있게 정리해요."
+            label="Warm"
+            description="크림색 바탕, 갈색 강조, 여유 있는 간격"
           />
         </RadioList>
         <HStack
@@ -50,14 +49,14 @@ export function ThemeSettings() {
             <Theme key={name} theme={themes[name]} mode="light">
               <VStack gap={4} className="theme-preview">
                 <Text type="supporting">
-                  {name === "warm" ? "WARM" : "PRODUCTIVITY"}
+                  {name === "warm" ? "Warm" : "Productivity"}
                 </Text>
-                <Heading level={2}>작은 완료, 좋은 하루</Heading>
+                <Heading level={2}>팀 칸반</Heading>
                 <HStack gap={3} vAlign="center">
                   <CheckCircleIcon size={24} className="accent-icon" aria-hidden />
-                  <Text>오늘의 할 일 정리하기</Text>
+                  <Text>업무 상태 확인</Text>
                 </HStack>
-                <Text color="secondary">하나씩, 우리만의 속도로.</Text>
+                <Text color="secondary">할 일 · 진행 중 · 완료</Text>
               </VStack>
             </Theme>
           ))}

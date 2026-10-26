@@ -11,7 +11,6 @@ import {
   SideNavSection,
 } from "@astryxdesign/core/SideNav";
 import { VStack } from "@astryxdesign/core/VStack";
-import { Text } from "@astryxdesign/core/Text";
 import {
   CheckSquareIcon,
   ListChecksIcon,
@@ -32,7 +31,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   return (
     <AppShell
       height="auto"
-      variant="wash"
+      variant="section"
       contentPadding={0}
       mobileNav={{ isOpen: mobileOpen, onOpenChange: setMobileOpen }}
       sideNav={
@@ -43,7 +42,6 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
               heading="Team Todo"
               headingHref="/"
               onClick={closeNavigation}
-              subheading="함께하는 일을, 가볍게"
               icon={<CheckSquareIcon size={24} aria-hidden />}
             />
           }
@@ -57,12 +55,6 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
                 variant="primary"
                 icon={<PlusIcon size={20} aria-hidden />}
               />
-            </VStack>
-          }
-          footer={
-            <VStack padding={4} gap={2}>
-              <Text type="label">작은 완료가 모이는 곳</Text>
-              <Text type="supporting">오늘의 일을 함께 정리해 보세요.</Text>
             </VStack>
           }
         >
